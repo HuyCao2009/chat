@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Chat</title>
+  </head>
+  <body>
+    <h1>Chat trực tuyến</h1>
+    <div class="chat-box" id="chatBox"></div>
+
+    <textarea
+      id="messageInput"
+      placeholder="Nhập tin nhắn..."
+      rows="3"
+    ></textarea>
+    <button onclick="sendMessage()">Gửi</button>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+      const socket = io();
+      const chatBox = document.getElementById("chatBox");
+      const messageInput = document.getElementById("messageInput");
+
+      // Kết nối vào socket với userId từ session
+      socket.emit("login", "user123");
+
+      // Nhận tin nhắn
+      socket.on("message", (message) => {
+        const messageElem = document.createElement("div");
+        messageElem.innerText = message;
+        chatBox.appendChild(messageElem);
+      });
+
+      function sendMessage() {
+        const message = messageInput.value;
+        if (message.trim()) {
+          socket.emit("message", "user456", message); // Gửi tin nhắn tới người dùng khác
+          messageInput.value = "";
+        }
+      }
+    </script>
+  </body>
+</html>

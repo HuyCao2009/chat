@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Trang cá nhân</title>
+  </head>
+  <body>
+    <h1>Chào mừng, {{username}}</h1>
+    <p><a href="/logout">Đăng xuất</a></p>
+
+    <h3>Thông tin cá nhân:</h3>
+    <form action="/updateProfile" method="POST">
+      <textarea name="profileInfo">{{profileInfo}}</textarea><br />
+      <button type="submit">Cập nhật thông tin</button>
+    </form>
+
+    <a href="/chat">Vào chat</a>
+  </body>
+</html>
