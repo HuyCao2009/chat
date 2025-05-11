@@ -1,16 +1,16 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Search Users</title>
-    <link rel="stylesheet" href="/style.css">
-</head>
-<body>
-    <h2>Search Users</h2>
-    <input type="text" id="searchBox" placeholder="Search for users">
-    <div id="results"></div>
-
-    <script src="/script.js"></script>
-</body>
-</html>
+<input id="searchBox" placeholder="Search usernames...">
+<div id="results"></div>
+<script src="/script.js"></script>
+<script>
+document.getElementById('searchBox').addEventListener('input', async (e) => {
+  const res = await fetch('/search-user', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ query: e.target.value })
+  });
+  const users = await res.json();
+  const results = document.getElementById('results');
+  results.innerHTML = users.map(u =>
+    `<div>${u.username} <button onclick="sendFriendRequest('${u.username}')">Add Friend</button></div>`
+  ).join('');
+});
+</script>
