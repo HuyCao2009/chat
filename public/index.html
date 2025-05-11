@@ -1,36 +1,28 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="vi">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Chat App</title>
-  <script src="/socket.io/socket.io.js"></script>
+  <meta charset="UTF-8" />
+  <title>Ứng dụng Chat</title>
+  <style>
+    body { font-family: Arial, sans-serif; background-color: #f2f2f2; }
+    #chat { max-width: 600px; margin: 50px auto; background: #fff; padding: 20px; border-radius: 5px; }
+    #messages { list-style-type: none; padding: 0; max-height: 300px; overflow-y: scroll; }
+    #messages li { padding: 5px 10px; }
+    #form { display: flex; }
+    #input { flex: 1; padding: 10px; border: 1px solid #ccc; border-radius: 3px; }
+    #send { padding: 10px; border: none; background: #28a745; color: #fff; border-radius: 3px; margin-left: 10px; cursor: pointer; }
+  </style>
 </head>
 <body>
-  <h1>cgh.testcloud</h1>
+  <div id="chat">
+    <ul id="messages"></ul>
+    <form id="form">
+      <input id="input" autocomplete="off" placeholder="Nhập tin nhắn..." />
+      <button id="send">Gửi</button>
+    </form>
+  </div>
 
-  <div id="chatBox"></div>
-  <input type="text" id="messageInput" placeholder="Type a message">
-  <button id="sendMessage">Send</button>
-  
-  <script>
-    const socket = io();
-
-    // Gửi tin nhắn
-    document.getElementById('sendMessage').addEventListener('click', () => {
-      const message = document.getElementById('messageInput').value;
-      const receiverId = document.getElementById('receiverId').value;
-      const senderId = document.getElementById('senderId').value;
-
-      socket.emit('chat message', { senderId, receiverId, message });
-    });
-
-    // Nhận tin nhắn
-    socket.on('chat message', (data) => {
-      const messageElement = document.createElement('div');
-      messageElement.innerText = `${data.senderId}: ${data.message}`;
-      document.getElementById('chatBox').appendChild(messageElement);
-    });
-  </script>
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="script.js"></script>
 </body>
 </html>
