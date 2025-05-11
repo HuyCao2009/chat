@@ -1,69 +1,50 @@
-// Import các thư viện cần thiết
-const express = require("express");
-const mongoose = require("mongoose");
-const path = require("path");
-require("dotenv").config(); // Để lấy thông tin từ file .env
+const express = require('express');
+const path = require('path');
+const mongoose = require('mongoose');
+const bodyParser = require('body-parser');
 
-// Khởi tạo ứng dụng Express
 const app = express();
+const PORT = process.env.PORT || 10000;
 
-// Middleware để phân tích JSON từ request body
-app.use(express.json());
+// Kết nối MongoDB Atlas
+mongoose.connect('mongodb://huydeptrainhungkhongpd:Huysenpai2009@ac-2ujrbot-shard-00-01.70ylm6f.mongodb.net:27017,ac-2ujrbot-shard-00-02.70ylm6f.mongodb.net:27017,ac-2ujrbot-shard-00-00.70ylm6f.mongodb.net:27017/?authSource=admin&replicaSet=atlas-bxw8e0-shard-0&retryWrites=true&w=majority&appName=Cluster0&ssl=true')
+  .then(() => console.log('Connected to MongoDB Atlas!'))
+  .catch(err => console.error('MongoDB connection error:', err));
 
-// Lấy thông tin kết nối MongoDB từ biến môi trường
-const dbUri = process.env.DB_URI;
+// Middleware
+app.use(bodyParser.urlencoded({ extended: true }));
+app.use(bodyParser.json());
 
-// Kết nối tới MongoDB Atlas
-mongoose
-  .connect(dbUri, { useNewUrlParser: true, useUnifiedTopology: true })
-  .then(() => {
-    console.log("Connected to MongoDB Atlas!");
-  })
-  .catch((err) => {
-    console.error("Error connecting to MongoDB: ", err);
-  });
+// Cấu hình public folder cho file tĩnh
+app.use(express.static(path.join(__dirname, 'public')));
 
-// Định nghĩa Schema và Model cho User
-const userSchema = new mongoose.Schema({
-  name: String,
-  age: Number,
+// === ROUTES ===
+// Trang chủ
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-const User = mongoose.model("User", userSchema);
-
-// Định nghĩa một route đơn giản để kiểm tra server
-app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "login.html"));
+// Trang đăng nhập
+app.get('/login', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'login.html'));
 });
 
-// Định nghĩa một route để thêm dữ liệu vào MongoDB
-app.post("/add", async (req, res) => {
-  const { name, age } = req.body;
-
-  try {
-    const newUser = new User({ name, age });
-    await newUser.save();
-    res.status(201).json({ message: "User added successfully!" });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+// Trang đăng ký
+app.get('/register', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'register.html'));
 });
 
-// Định nghĩa một route để lấy dữ liệu từ MongoDB
-app.get("/users", async (req, res) => {
-  try {
-    const users = await User.find();
-    res.status(200).json(users);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+// Trang chat (nếu có)
+app.get('/chat', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'chat.html'));
 });
 
-// Đảm bảo rằng server có thể phục vụ tệp tĩnh
-app.use(express.static(path.join(__dirname, "public")));
+// Bắt mọi route không xác định → báo lỗi 404 hoặc redirect
+app.use((req, res) => {
+  res.status(404).send('404 - Page Not Found');
+});
 
-// Cấu hình server lắng nghe tại port 3000
-const port = process.env.PORT || 3000;
-app.listen(port, () => {
-  console.log(`Server is running on port ${port}`);
+// Khởi động server
+app.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}`);
 });
