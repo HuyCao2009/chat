@@ -3,6 +3,8 @@ const path = require('path');
 const mongoose = require('mongoose');
 const bodyParser = require('body-parser');
 const bcrypt = require('bcrypt');
+const http = require('http').createServer(app);
+const io = require('socket.io')(http);
 
 const app = express();
 const PORT = process.env.PORT || 10000;
@@ -25,7 +27,9 @@ app.use(express.static(path.join(__dirname, 'public')));
 // ====== MODEL ======
 const userSchema = new mongoose.Schema({
   username: String,
-  password: String
+  password: String,
+  friends: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],  // Danh sách bạn bè
+  friendRequests: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }] // Danh sách yêu cầu kết bạn
 });
 const User = mongoose.model('User', userSchema);
 
@@ -87,20 +91,93 @@ app.post('/login', async (req, res) => {
   }
 });
 
-// Route không xác định → 404
-app.use((req, res) => {
-  res.status(404).send('404 - Page Not Found');
+// Tìm kiếm bạn bè
+app.get('/search', async (req, res) => {
+  const { username } = req.query;
+  try {
+    const users = await User.find({ username: { $regex: username, $options: 'i' } }).limit(10);
+    res.json(users);
+  } catch (err) {
+    res.status(500).send('Lỗi khi tìm kiếm');
+  }
 });
 
-const http = require('http').createServer(app);
-const io = require('socket.io')(http);
+// Gửi yêu cầu kết bạn
+app.post('/send-friend-request', async (req, res) => {
+  const { senderId, receiverId } = req.body;
+  try {
+    const sender = await User.findById(senderId);
+    const receiver = await User.findById(receiverId);
+    if (!receiver || !sender) return res.status(400).send('Người dùng không tồn tại.');
+
+    if (receiver.friendRequests.includes(senderId)) {
+      return res.status(400).send('Bạn đã gửi yêu cầu kết bạn cho người này rồi.');
+    }
+
+    receiver.friendRequests.push(senderId);
+    await receiver.save();
+    res.send('Yêu cầu kết bạn đã được gửi.');
+  } catch (err) {
+    res.status(500).send('Lỗi khi gửi yêu cầu kết bạn');
+  }
+});
+
+// Chấp nhận yêu cầu kết bạn
+app.post('/accept-friend-request', async (req, res) => {
+  const { userId, friendId } = req.body;
+  try {
+    const user = await User.findById(userId);
+    const friend = await User.findById(friendId);
+
+    if (!user || !friend) return res.status(400).send('Người dùng không tồn tại.');
+
+    user.friends.push(friendId);
+    friend.friends.push(userId);
+
+    user.friendRequests = user.friendRequests.filter(id => id.toString() !== friendId.toString());
+
+    await user.save();
+    await friend.save();
+
+    res.send('Bạn đã chấp nhận yêu cầu kết bạn!');
+  } catch (err) {
+    res.status(500).send('Lỗi khi chấp nhận yêu cầu kết bạn');
+  }
+});
+
+// Hủy yêu cầu kết bạn
+app.post('/cancel-friend-request', async (req, res) => {
+  const { userId, friendId } = req.body;
+  try {
+    const user = await User.findById(userId);
+    if (!user) return res.status(400).send('Người dùng không tồn tại.');
+
+    user.friendRequests = user.friendRequests.filter(id => id.toString() !== friendId.toString());
+    await user.save();
+
+    res.send('Yêu cầu kết bạn đã bị hủy.');
+  } catch (err) {
+    res.status(500).send('Lỗi khi hủy yêu cầu kết bạn');
+  }
+});
 
 // Xử lý socket
 io.on('connection', (socket) => {
   console.log('🟢 A user connected');
 
-  socket.on('chat message', (msg) => {
-    io.emit('chat message', msg); // Gửi lại cho tất cả client
+  // Nhận tin nhắn từ client và gửi đến user đã kết bạn
+  socket.on('chat message', async (msg) => {
+    const { senderId, receiverId, message } = msg;
+    
+    // Kiểm tra xem người gửi và người nhận có phải là bạn bè không
+    const sender = await User.findById(senderId);
+    const receiver = await User.findById(receiverId);
+
+    if (sender && receiver && sender.friends.includes(receiverId)) {
+      io.to(receiverId).emit('chat message', { senderId, message });  // Gửi tin nhắn cho người nhận
+    } else {
+      socket.emit('error', 'Bạn chưa kết bạn với người này!');
+    }
   });
 
   socket.on('disconnect', () => {
@@ -108,7 +185,7 @@ io.on('connection', (socket) => {
   });
 });
 
-// Chạy bằng http thay vì app.listen
+// Khởi động server
 http.listen(PORT, () => {
   console.log(`🚀 Server is running on port ${PORT}`);
 });
