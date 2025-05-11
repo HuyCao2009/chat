@@ -5,7 +5,6 @@ const bodyParser = require('body-parser');
 const bcrypt = require('bcrypt');
 const multer = require('multer');
 const session = require('express-session');
-const fs = require('fs');
 const http = require('http');
 const socketIO = require('socket.io');
 
@@ -17,7 +16,7 @@ const server = http.createServer(app);
 const io = socketIO(server);
 const PORT = process.env.PORT || 10000;
 
-mongoose.connect('mongodb+srv://...your_connection_string...', {
+mongoose.connect('mongodb+srv://<YOUR_DB_URL>', {
   useNewUrlParser: true,
   useUnifiedTopology: true
 });
@@ -37,7 +36,7 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
-// ==== Routes ====
+// Routes
 app.get('/', (req, res) => res.redirect('/login'));
 app.get('/login', (req, res) => res.sendFile(path.join(__dirname, 'views', 'login.html')));
 app.get('/register', (req, res) => res.sendFile(path.join(__dirname, 'views', 'register.html')));
@@ -45,13 +44,13 @@ app.get('/chat', (req, res) => {
   if (!req.session.user) return res.redirect('/login');
   res.sendFile(path.join(__dirname, 'views', 'chat.html'));
 });
-app.get('/profile/:username', async (req, res) => {
+app.get('/profile/:username', (req, res) => {
   if (!req.session.user) return res.redirect('/login');
   res.sendFile(path.join(__dirname, 'views', 'profile.html'));
 });
 app.get('/search', (req, res) => res.sendFile(path.join(__dirname, 'views', 'search.html')));
 
-// Auth
+// Auth Routes
 app.post('/register', upload.single('avatar'), async (req, res) => {
   const { username, password } = req.body;
   const avatar = req.file ? '/uploads/' + req.file.filename : '';
@@ -69,12 +68,14 @@ app.post('/login', async (req, res) => {
   res.redirect('/chat');
 });
 
+// User Search
 app.post('/search-user', async (req, res) => {
   const { query } = req.body;
   const users = await User.find({ username: { $regex: query, $options: 'i' } });
   res.json(users);
 });
 
+// Friend request
 app.post('/send-friend-request', async (req, res) => {
   const { toUsername } = req.body;
   const from = await User.findById(req.session.user._id);
@@ -98,7 +99,7 @@ app.post('/accept-friend', async (req, res) => {
   res.send('Friend added');
 });
 
-// Socket chat riêng
+// Chat system via WebSocket
 io.on('connection', (socket) => {
   socket.on('private message', async ({ from, to, text }) => {
     const msg = new Message({ from, to, text });
