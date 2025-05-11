@@ -1,13 +1,36 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Trang chính (cgh.test)</title>
-  <link rel="stylesheet" href="style.css" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chat App</title>
+  <script src="/socket.io/socket.io.js"></script>
 </head>
 <body>
-  <h1>Chào mừng đến với HChat!</h1>
-  <p><a href="/login">Đăng nhập</a> | <a href="/register">Đăng ký</a></p>
+  <h1>cgh.testcloud</h1>
+
+  <div id="chatBox"></div>
+  <input type="text" id="messageInput" placeholder="Type a message">
+  <button id="sendMessage">Send</button>
+  
+  <script>
+    const socket = io();
+
+    // Gửi tin nhắn
+    document.getElementById('sendMessage').addEventListener('click', () => {
+      const message = document.getElementById('messageInput').value;
+      const receiverId = document.getElementById('receiverId').value;
+      const senderId = document.getElementById('senderId').value;
+
+      socket.emit('chat message', { senderId, receiverId, message });
+    });
+
+    // Nhận tin nhắn
+    socket.on('chat message', (data) => {
+      const messageElement = document.createElement('div');
+      messageElement.innerText = `${data.senderId}: ${data.message}`;
+      document.getElementById('chatBox').appendChild(messageElement);
+    });
+  </script>
 </body>
 </html>
