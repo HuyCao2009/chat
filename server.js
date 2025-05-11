@@ -1,35 +1,69 @@
 const express = require('express');
-const http = require('http');
 const path = require('path');
-const { Server } = require('socket.io');
+const mongoose = require('mongoose');
+const bodyParser = require('body-parser');
+const bcrypt = require('bcrypt');
+const http = require('http');
+const socketio = require('socket.io');
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server);
+const io = socketio(server);
+const PORT = process.env.PORT || 10000;
 
-// Cấu hình cổng
-const PORT = process.env.PORT || 3000;
+mongoose.connect('mongodb+srv://huydeptrainhungkhongpd:Huysenpai2009@cluster0.70ylm6f.mongodb.net/chatapp?retryWrites=true&w=majority&ssl=true')
+  .then(() => console.log('✅ Connected to MongoDB Atlas!'))
+  .catch(err => console.error('❌ MongoDB connection error:', err));
 
-// Cung cấp các tệp tĩnh từ thư mục 'public'
+app.use(bodyParser.urlencoded({ extended: true }));
+app.use(bodyParser.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Xử lý kết nối Socket.io
-io.on('connection', (socket) => {
-  console.log('🔌 Người dùng đã kết nối');
+const User = require('./models/User');
 
-  // Lắng nghe sự kiện 'chat message' từ client
-  socket.on('chat message', (msg) => {
-    // Phát lại tin nhắn đến tất cả các client
-    io.emit('chat message', msg);
-  });
+app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
+app.get('/login', (req, res) => res.sendFile(path.join(__dirname, 'public', 'login.html')));
+app.get('/register', (req, res) => res.sendFile(path.join(__dirname, 'public', 'register.html')));
+app.get('/chat', (req, res) => res.sendFile(path.join(__dirname, 'public', 'chat.html')));
 
-  // Xử lý khi người dùng ngắt kết nối
-  socket.on('disconnect', () => {
-    console.log('❌ Người dùng đã ngắt kết nối');
-  });
+// Đăng ký
+app.post('/register', async (req, res) => {
+  const { username, password } = req.body;
+  const existing = await User.findOne({ username });
+  if (existing) return res.status(400).send('User exists');
+  const hashed = await bcrypt.hash(password, 10);
+  const user = new User({ username, password: hashed });
+  await user.save();
+  res.redirect('/login');
 });
 
-// Khởi động máy chủ
+// Đăng nhập
+app.post('/login', async (req, res) => {
+  const { username, password } = req.body;
+  const user = await User.findOne({ username });
+  if (!user) return res.status(400).send('User not found');
+  const match = await bcrypt.compare(password, user.password);
+  if (!match) return res.status(400).send('Wrong password');
+  res.redirect(`/chat?username=${username}`);
+});
+
+// Gửi danh sách bạn bè (giả lập đơn giản)
+app.get('/friends/:username', async (req, res) => {
+  const allUsers = await User.find({ username: { $ne: req.params.username } });
+  res.json(allUsers.map(u => u.username));
+});
+
+// Socket.io
+io.on('connection', (socket) => {
+  console.log('🟢 A user connected');
+
+  socket.on('private message', ({ from, to, message }) => {
+    io.emit('private message', { from, to, message });
+  });
+
+  socket.on('disconnect', () => console.log('🔴 A user disconnected'));
+});
+
 server.listen(PORT, () => {
-  console.log(`🚀 Máy chủ đang chạy tại http://localhost:${PORT}`);
+  console.log(`🚀 Server running on port ${PORT}`);
 });
