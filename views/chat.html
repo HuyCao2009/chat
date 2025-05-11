@@ -1,22 +1,17 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chat</title>
-    <link rel="stylesheet" href="/style.css">
-</head>
-<body>
-    <h2>Chat</h2>
-    <div id="messages"></div>
-
-    <div>
-        <input type="text" id="to" placeholder="Send to username">
-        <input type="text" id="text" placeholder="Type a message">
-        <button onclick="sendMessage()">Send</button>
-    </div>
-
-    <script src="/socket.io/socket.io.js"></script>
-    <script src="/script.js"></script>
-</body>
-</html>
+<script src="/socket.io/socket.io.js"></script>
+<script>
+const socket = io();
+function sendMessage() {
+  const to = document.getElementById('to').value;
+  const text = document.getElementById('text').value;
+  socket.emit('private message', { from: 'me', to, text });
+}
+socket.on('private message', (msg) => {
+  const chat = document.getElementById('chat');
+  chat.innerHTML += `<div><b>${msg.from}</b>: ${msg.text}</div>`;
+});
+</script>
+<input id="to" placeholder="To Username">
+<input id="text" placeholder="Message">
+<button onclick="sendMessage()">Send</button>
+<div id="chat"></div>
