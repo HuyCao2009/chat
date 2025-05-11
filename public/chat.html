@@ -4,33 +4,16 @@
   <title>Chat</title>
 </head>
 <body>
-  <ul id="messages"></ul>
-  <form id="form">
-    <input id="input" autocomplete="off" /><button>Send</button>
-  </form>
+  <h2>Private Chat</h2>
+  <div>
+    <label>Chọn người nhận:</label>
+    <select id="friendSelect"></select>
+  </div>
+  <div id="messages" style="border:1px solid #000;height:200px;overflow:auto;"></div>
+  <input id="messageInput" placeholder="Message..." />
+  <button id="sendBtn">Send</button>
 
   <script src="/socket.io/socket.io.js"></script>
-  <script>
-    const socket = io();
-
-    const form = document.getElementById('form');
-    const input = document.getElementById('input');
-    const messages = document.getElementById('messages');
-
-    form.addEventListener('submit', function(e) {
-      e.preventDefault();
-      if (input.value) {
-        socket.emit('chat message', input.value);
-        input.value = '';
-      }
-    });
-
-    socket.on('chat message', function(msg) {
-      const item = document.createElement('li');
-      item.textContent = msg;
-      messages.appendChild(item);
-      window.scrollTo(0, document.body.scrollHeight);
-    });
-  </script>
+  <script src="script.js"></script>
 </body>
 </html>
