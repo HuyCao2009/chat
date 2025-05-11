@@ -1,36 +1,60 @@
-const socket = io();
-const urlParams = new URLSearchParams(window.location.search);
-const username = urlParams.get('username');
+// Gửi yêu cầu kết bạn
+function sendFriendRequest(toUsername) {
+  fetch('/send-friend-request', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ toUsername })
+  })
+  .then(res => res.text())
+  .then(response => alert(response));
+}
 
-const messageInput = document.getElementById('messageInput');
-const sendBtn = document.getElementById('sendBtn');
-const messages = document.getElementById('messages');
-const friendSelect = document.getElementById('friendSelect');
+// Chấp nhận yêu cầu kết bạn
+function acceptFriend(fromId) {
+  fetch('/accept-friend', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ fromId })
+  })
+  .then(res => res.text())
+  .then(response => alert(response));
+}
 
-fetch(`/friends/${username}`)
-  .then(res => res.json())
-  .then(friends => {
-    friends.forEach(friend => {
-      const opt = document.createElement('option');
-      opt.value = friend;
-      opt.innerText = friend;
-      friendSelect.appendChild(opt);
-    });
+// Tìm kiếm người dùng
+document.getElementById('searchBox').addEventListener('input', async (e) => {
+  const query = e.target.value;
+  const res = await fetch('/search-user', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ query })
   });
+  const users = await res.json();
+  const results = document.getElementById('results');
+  results.innerHTML = users.map(u => `
+    <div>
+      ${u.username} 
+      <button onclick="sendFriendRequest('${u.username}')">Add Friend</button>
+    </div>
+  `).join('');
+});
 
-sendBtn.onclick = () => {
-  const to = friendSelect.value;
-  const msg = messageInput.value;
-  if (!to || !msg) return;
-  socket.emit('private message', { from: username, to, message: msg });
-  messageInput.value = '';
-};
+// Gửi tin nhắn
+const socket = io(); // Kết nối đến socket.io
 
-socket.on('private message', ({ from, to, message }) => {
-  if (to === username || from === username) {
-    const div = document.createElement('div');
-    div.textContent = `${from}: ${message}`;
-    messages.appendChild(div);
-    messages.scrollTop = messages.scrollHeight;
+function sendMessage() {
+  const to = document.getElementById('to').value;
+  const text = document.getElementById('text').value;
+  if (!to || !text) {
+    alert('Please enter a username and a message.');
+    return;
   }
+  socket.emit('private message', { from: 'me', to, text });
+  document.getElementById('text').value = ''; // Reset input field
+}
+
+// Lắng nghe tin nhắn và hiển thị
+socket.on('private message', (msg) => {
+  const chat = document.getElementById('chat');
+  chat.innerHTML += `<div><b>${msg.from}</b>: ${msg.text}</div>`;
+  chat.scrollTop = chat.scrollHeight; // Tự động cuộn xuống dưới khi có tin nhắn mới
 });
