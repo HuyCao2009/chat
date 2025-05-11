@@ -5,6 +5,7 @@ const bodyParser = require('body-parser');
 const bcrypt = require('bcrypt');
 const multer = require('multer');
 const session = require('express-session');
+const fs = require('fs');
 const http = require('http');
 const socketIO = require('socket.io');
 
@@ -16,7 +17,7 @@ const server = http.createServer(app);
 const io = socketIO(server);
 const PORT = process.env.PORT || 10000;
 
-mongoose.connect('mongodb+srv://<YOUR_DB_URL>', {
+mongoose.connect('mongodb+srv://<your-connection-string>', {
   useNewUrlParser: true,
   useUnifiedTopology: true
 });
@@ -27,7 +28,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use(session({ secret: 'chatapp', resave: false, saveUninitialized: true }));
 
-// Multer setup for avatar upload
+// Avatar upload
 const storage = multer.diskStorage({
   destination: './uploads/',
   filename: (req, file, cb) => {
@@ -44,13 +45,26 @@ app.get('/chat', (req, res) => {
   if (!req.session.user) return res.redirect('/login');
   res.sendFile(path.join(__dirname, 'views', 'chat.html'));
 });
-app.get('/profile/:username', (req, res) => {
+
+app.get('/profile/:username', async (req, res) => {
   if (!req.session.user) return res.redirect('/login');
-  res.sendFile(path.join(__dirname, 'views', 'profile.html'));
+
+  const user = await User.findOne({ username: req.params.username });
+  if (!user) return res.send('User not found');
+
+  fs.readFile(path.join(__dirname, 'views', 'profile.html'), 'utf8', (err, html) => {
+    if (err) return res.send('Error loading profile');
+
+    const rendered = html
+      .replace(/{{username}}/g, user.username)
+      .replace(/{{avatar}}/g, user.avatar || '/default-avatar.png');
+    res.send(rendered);
+  });
 });
+
 app.get('/search', (req, res) => res.sendFile(path.join(__dirname, 'views', 'search.html')));
 
-// Auth Routes
+// Auth
 app.post('/register', upload.single('avatar'), async (req, res) => {
   const { username, password } = req.body;
   const avatar = req.file ? '/uploads/' + req.file.filename : '';
@@ -68,14 +82,12 @@ app.post('/login', async (req, res) => {
   res.redirect('/chat');
 });
 
-// User Search
 app.post('/search-user', async (req, res) => {
   const { query } = req.body;
   const users = await User.find({ username: { $regex: query, $options: 'i' } });
   res.json(users);
 });
 
-// Friend request
 app.post('/send-friend-request', async (req, res) => {
   const { toUsername } = req.body;
   const from = await User.findById(req.session.user._id);
@@ -99,7 +111,7 @@ app.post('/accept-friend', async (req, res) => {
   res.send('Friend added');
 });
 
-// Chat system via WebSocket
+// Socket
 io.on('connection', (socket) => {
   socket.on('private message', async ({ from, to, text }) => {
     const msg = new Message({ from, to, text });
@@ -108,4 +120,4 @@ io.on('connection', (socket) => {
   });
 });
 
-server.listen(PORT, () => console.log(`🚀 Server on ${PORT}`));
+server.listen(PORT, () => console.log(`🚀 Server running on http://localhost:${PORT}`));
