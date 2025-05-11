@@ -92,7 +92,23 @@ app.use((req, res) => {
   res.status(404).send('404 - Page Not Found');
 });
 
-// Khởi động server
-app.listen(PORT, () => {
+const http = require('http').createServer(app);
+const io = require('socket.io')(http);
+
+// Xử lý socket
+io.on('connection', (socket) => {
+  console.log('🟢 A user connected');
+
+  socket.on('chat message', (msg) => {
+    io.emit('chat message', msg); // Gửi lại cho tất cả client
+  });
+
+  socket.on('disconnect', () => {
+    console.log('🔴 A user disconnected');
+  });
+});
+
+// Chạy bằng http thay vì app.listen
+http.listen(PORT, () => {
   console.log(`🚀 Server is running on port ${PORT}`);
 });
