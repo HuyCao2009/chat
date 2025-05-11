@@ -28,6 +28,12 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use(session({ secret: 'chatapp', resave: false, saveUninitialized: true }));
 
+// Check if uploads directory exists, if not, create it
+const uploadsDir = path.join(__dirname, 'uploads');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir);
+}
+
 // Avatar upload
 const storage = multer.diskStorage({
   destination: './uploads/',
