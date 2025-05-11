@@ -1,44 +1,36 @@
 <!DOCTYPE html>
-<html lang="vi">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Chat</title>
-  </head>
-  <body>
-    <h1>Chat trực tuyến</h1>
-    <div class="chat-box" id="chatBox"></div>
+<html>
+<head>
+  <title>Chat</title>
+</head>
+<body>
+  <ul id="messages"></ul>
+  <form id="form">
+    <input id="input" autocomplete="off" /><button>Send</button>
+  </form>
 
-    <textarea
-      id="messageInput"
-      placeholder="Nhập tin nhắn..."
-      rows="3"
-    ></textarea>
-    <button onclick="sendMessage()">Gửi</button>
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const socket = io();
 
-    <script src="/socket.io/socket.io.js"></script>
-    <script>
-      const socket = io();
-      const chatBox = document.getElementById("chatBox");
-      const messageInput = document.getElementById("messageInput");
+    const form = document.getElementById('form');
+    const input = document.getElementById('input');
+    const messages = document.getElementById('messages');
 
-      // Kết nối vào socket với userId từ session
-      socket.emit("login", "user123");
-
-      // Nhận tin nhắn
-      socket.on("message", (message) => {
-        const messageElem = document.createElement("div");
-        messageElem.innerText = message;
-        chatBox.appendChild(messageElem);
-      });
-
-      function sendMessage() {
-        const message = messageInput.value;
-        if (message.trim()) {
-          socket.emit("message", "user456", message); // Gửi tin nhắn tới người dùng khác
-          messageInput.value = "";
-        }
+    form.addEventListener('submit', function(e) {
+      e.preventDefault();
+      if (input.value) {
+        socket.emit('chat message', input.value);
+        input.value = '';
       }
-    </script>
-  </body>
+    });
+
+    socket.on('chat message', function(msg) {
+      const item = document.createElement('li');
+      item.textContent = msg;
+      messages.appendChild(item);
+      window.scrollTo(0, document.body.scrollHeight);
+    });
+  </script>
+</body>
 </html>
