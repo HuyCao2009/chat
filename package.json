@@ -1,13 +1,15 @@
 {
   "name": "chat-app",
   "version": "1.0.0",
-  "description": "Ứng dụng chat thời gian thực với Node.js, Express và Socket.io",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
   },
   "dependencies": {
+    "bcrypt": "^5.1.0",
+    "body-parser": "^1.20.2",
     "express": "^4.18.2",
+    "mongoose": "^7.5.0",
     "socket.io": "^4.7.2"
   }
 }
